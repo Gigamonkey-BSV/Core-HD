@@ -90,6 +90,7 @@ void inline read_option (const argh::parser &p, uint32 index, const std::string 
     X x;
     if (auto positional = p (index); positional) positional >> x;
     else if (auto opt = p (option); opt) opt >> x;
+    else return;
     m = x;
 }
 
@@ -97,6 +98,7 @@ template <typename X>
 void inline read_option (const argh::parser &p, uint32 index, maybe<X> &m) {
     X x;
     if (auto positional = p (index); positional) positional >> x;
+    else return;
     m = x;
 }
 
@@ -104,6 +106,7 @@ template <typename X>
 void inline read_option (const argh::parser &p, const std::string &option, maybe<X> &m) {
     X x;
     if (auto opt = p (option); opt) opt >> x;
+    else return;
     m = x;
 }
 
@@ -139,16 +142,34 @@ void restore (const argh::parser &p) {
     using namespace Gigamonkey::HD;
     std::cout << "attempting to restore wallet \n" << std::endl;
 
-    maybe<std::string> words;
-    read_option (p, 2, words);
+    list<string> words;
+    int i = 2;
+    while (true) {
+        maybe<string> word;
+        read_option (p, i, word);
+        if (!word || word == "") break;
+        words <<= *word;
+        i++;
+    }
 
-    if (!words) throw exception {} << "No words provided";
+    if (data::size (words) == 0) throw exception {} << "No words provided";
+    std::cout << "reading words " << words << std::endl;
+
+    std::stringstream ss;
+    while (true) {
+        ss << words.first ();
+        words = words.rest ();
+        if (data::size (words) == 0) break;
+        ss << " ";
+    }
+
+    string phrase = ss.str ();
 
     seed x;
 
-    if (BIP_39::valid (*words)) {
+    if (BIP_39::valid (phrase)) {
         std::cout << "words have been read as BIP 39" << std::endl;
-        x = BIP_39::read (*words);/*
+        x = BIP_39::read (phrase);/*
     } else if (Electrum_SV::valid (*words)) {
         std::cout << "words have been read as Electrum SV" << std::endl;
         x = Eletrum_SV::read (*words);*/
