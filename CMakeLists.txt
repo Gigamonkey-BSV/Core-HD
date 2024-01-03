@@ -14,7 +14,7 @@ target_link_libraries (CoreHD PUBLIC
   argh
   gigamonkey::gigamonkey
   data::data
-  boost)
+  boost::boost)
 
 target_include_directories (CoreHD PUBLIC include)
 
