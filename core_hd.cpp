@@ -142,10 +142,10 @@ void restore (const argh::parser &p) {
     using namespace Gigamonkey::HD;
     std::cout << "attempting to restore wallet \n" << std::endl;
 
-    list<string> words;
+    list<std::string> words;
     int i = 2;
     while (true) {
-        maybe<string> word;
+        maybe<std::string> word;
         read_option (p, i, word);
         if (!word || word == "") break;
         words <<= *word;
@@ -153,7 +153,6 @@ void restore (const argh::parser &p) {
     }
 
     if (data::size (words) == 0) throw exception {} << "No words provided";
-    std::cout << "reading words " << words << std::endl;
 
     std::stringstream ss;
     while (true) {
@@ -164,7 +163,7 @@ void restore (const argh::parser &p) {
     }
 
     string phrase = ss.str ();
-
+    std::cout << "reading words " << phrase << std::endl;
     seed x;
 
     if (BIP_39::valid (phrase)) {
