@@ -11,7 +11,7 @@ using namespace data;
 
 void run (const argh::parser &);
 
-int main (int arg_count, char **arg_values) {
+int main (int arg_count, char *arg_values[]) {
 
     try {
         run (argh::parser {arg_count, arg_values});
@@ -85,11 +85,23 @@ void run (const argh::parser & p) {
     }
 }
 
+template <typename X> struct read_from_stream {
+    void operator () (std::istringstream &o, X &m) {
+        o >> m;
+    }
+};
+
+template <> struct read_from_stream<std::string> {
+    void operator () (std::istringstream &o, std::string &m) {
+        m = o.str ();
+    }
+};
+
 template <typename X>
 void inline read_option (const argh::parser &p, uint32 index, const std::string &option, maybe<X> &m) {
     X x;
-    if (auto positional = p (index); positional) positional >> x;
-    else if (auto opt = p (option); opt) opt >> x;
+    if (auto positional = p (index); positional) read_from_stream<X> {} (positional, x);
+    else if (auto opt = p (option); opt) read_from_stream<X> {} (opt, x);
     else return;
     m = x;
 }
@@ -97,7 +109,7 @@ void inline read_option (const argh::parser &p, uint32 index, const std::string 
 template <typename X>
 void inline read_option (const argh::parser &p, uint32 index, maybe<X> &m) {
     X x;
-    if (auto positional = p (index); positional) positional >> x;
+    if (auto positional = p (index); positional) read_from_stream<X> {} (positional, x);
     else return;
     m = x;
 }
@@ -105,7 +117,7 @@ void inline read_option (const argh::parser &p, uint32 index, maybe<X> &m) {
 template <typename X>
 void inline read_option (const argh::parser &p, const std::string &option, maybe<X> &m) {
     X x;
-    if (auto opt = p (option); opt) opt >> x;
+    if (auto opt = p (option); opt) read_from_stream<X> {} (opt, x);
     else return;
     m = x;
 }
@@ -142,39 +154,34 @@ void restore (const argh::parser &p) {
     using namespace Gigamonkey::HD;
     std::cout << "attempting to restore wallet \n" << std::endl;
 
-    list<std::string> words;
-    int i = 2;
-    while (true) {
-        maybe<std::string> word;
-        read_option (p, i, word);
-        if (!word || word == "") break;
-        words <<= *word;
-        i++;
-    }
+    maybe<std::string> words;
+    read_option (p, 2, words);
 
-    if (data::size (words) == 0) throw exception {} << "No words provided";
+    if (!bool (words)) throw exception {} << "No words provided";
 
-    std::stringstream ss;
-    while (true) {
-        ss << words.first ();
-        words = words.rest ();
-        if (data::size (words) == 0) break;
-        ss << " ";
-    }
-
-    string phrase = ss.str ();
-    std::cout << "reading words " << phrase << std::endl;
+    std::cout << "reading words \"" << *words << "\"" << std::endl;
     seed x;
 
-    if (BIP_39::valid (phrase)) {
+    maybe<std::string> arg_passphrase;
+    read_option (p, 3, arg_passphrase);
+
+    seed (*read_words) (std::string, const string &, BIP_39::language);
+
+    if (BIP_39::valid (*words)) {
         std::cout << "words have been read as BIP 39" << std::endl;
-        x = BIP_39::read (phrase);/*
+        read_words = BIP_39::read;/*
+        x = BIP_39::read (*words);
     } else if (Electrum_SV::valid (*words)) {
         std::cout << "words have been read as Electrum SV" << std::endl;
+        read_words = &Electrum_SV::read;
         x = Eletrum_SV::read (*words);*/
     } else {
         throw exception {} << "invalid words";
     }
+
+    string passphrase = arg_passphrase ? *arg_passphrase : "";
+
+    x = BIP_39::read (*words, passphrase, BIP_39::english);
 
     BIP_32::secret master_sk = BIP_32::secret::from_seed (x);
     BIP_32::pubkey master_pk = master_sk.to_public ();
@@ -193,5 +200,4 @@ void restore (const argh::parser &p) {
         "\n\tcoin type Bitcoin:      " << bitcoin.Secret <<
         "\n\tcoin type Bitcoin Cash: " << bitcoin_cash.Secret <<
         "\n\tcoin type Bitcoin SV:   " << bitcoin_sv.Secret << std::endl;
-
 }
