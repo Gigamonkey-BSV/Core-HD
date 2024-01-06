@@ -188,7 +188,9 @@ void restore (const argh::parser &p) {
 
     std::cout << "read master key: " << "\n\tsecret: " << master_sk << "\n\tpubkey: " << master_pk << "\n" << std::endl;
 
-    std::cout << "if your wallet uses BIP 44, there is a derivation path to the true master key. " << std::endl;
+    std::cout << "if your wallet uses BIP 44, there is a derivation path to the true master key. \n" <<
+        "There is a parameter in this derivation called coin type. Different wallets inconsistently \n" <<
+        "use 1 of 3 possible parameters. All three derived master keys are given below. " << std::endl;
 
     BIP_44::root bip44_root {master_sk};
 
@@ -196,8 +198,10 @@ void restore (const argh::parser &p) {
     BIP_44::master_secret bitcoin_cash = bip44_root.master (BIP_44::coin_type_Bitcoin_Cash);
     BIP_44::master_secret bitcoin_sv = bip44_root.master (BIP_44::coin_type_Bitcoin_SV);
 
-    std::cout << "bip 44 masters: " <<
-        "\n\tcoin type Bitcoin:      " << bitcoin.Secret <<
-        "\n\tcoin type Bitcoin Cash: " << bitcoin_cash.Secret <<
-        "\n\tcoin type Bitcoin SV:   " << bitcoin_sv.Secret << std::endl;
+    std::cout <<
+        "\ncoin type Bitcoin:      \n\tsecret: " << bitcoin.Secret << "\n\tpubkey: " << bitcoin.Secret.to_public () << "\n" <<
+        "\ncoin type Bitcoin Cash: \n\tsecret: " << bitcoin_cash.Secret << "\n\tpubkey: " << bitcoin_cash.Secret.to_public () << "\n" <<
+        "\ncoin type Bitcoin SV:   \n\tsecret: " << bitcoin_sv.Secret << "\n\tpubkey: " << bitcoin_sv.Secret.to_public () << "\n" <<
+        std::endl;
+
 }
